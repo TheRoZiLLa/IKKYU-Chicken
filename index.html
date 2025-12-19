@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Order System - Chicken Market</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin
+        src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase for Real-Time Database -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+
+    <script>
+        // Firebase Configuration
+        // REPLACE THESE WITH YOUR OWN FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+
+        // Storage API using Firebase Realtime Database
+        window.storage = {
+            async get(key, shared = false) {
+                try {
+                    const snapshot = await database.ref(key).once('value');
+                    const value = snapshot.val();
+                    return value ? { key, value: String(value), shared } : null;
+                } catch (error) {
+                    console.error('Get error:', error);
+                    return null;
+                }
+            },
+
+            async set(key, value, shared = false) {
+                try {
+                    await database.ref(key).set(value);
+                    return { key, value, shared };
+                } catch (error) {
+                    console.error('Set error:', error);
+                    return null;
+                }
+            },
+
+            async delete(key, shared = false) {
+                try {
+                    await database.ref(key).remove();
+                    return { key, deleted: true, shared };
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    return null;
+                }
+            },
+
+            async list(prefix = '', shared = false) {
+                try {
+                    const snapshot = await database.ref().once('value');
+                    const data = snapshot.val() || {};
+                    const keys = Object.keys(data).filter(k => k.startsWith(prefix));
+                    return { keys, prefix, shared };
+                } catch (error) {
+                    console.error('List error:', error);
+                    return { keys: [], prefix, shared };
+                }
+            }
+        };
+    </script>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const Plus = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" /><path d="M12 5v14" />
+            </svg>
+        );
+
+        const Minus = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+            </svg>
+        );
+
+        const Users = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        );
+
+        const ChefHat = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" /><line x1="6" y1="17" x2="18" y2="17" />
+            </svg>
+        );
+
+        const Check = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+            </svg>
+        );
+
+        function QueueOrderSystem() {
+            const [screenMode, setScreenMode] = useState('select');
+            const [queueNumber, setQueueNumber] = useState(0);
+            const [orderCount, setOrderCount] = useState(1);
+            const [orders, setOrders] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadData();
+
+                // Real-time listener for Firebase
+                const ordersRef = database.ref();
+                ordersRef.on('value', (snapshot) => {
+                    loadData();
+                });
+
+                return () => ordersRef.off('value');
+            }, []);
+
+            const loadData = async () => {
+                try {
+                    const queueResult = await window.storage.get('queue_number', true);
+                    if (queueResult) {
+                        setQueueNumber(parseInt(queueResult.value));
+                    }
+
+                    const ordersResult = await window.storage.list('order:', true);
+                    if (ordersResult && ordersResult.keys) {
+                        const orderPromises = ordersResult.keys.map(key =>
+                            window.storage.get(key, true)
+                        );
+                        const orderResults = await Promise.all(orderPromises);
+                        const loadedOrders = orderResults
+                            .filter(r => r && r.value)
+                            .map(r => JSON.parse(r.value))
+                            .sort((a, b) => a.queueNum - b.queueNum);
+                        setOrders(loadedOrders);
+                    }
+                } catch (error) {
+                    console.log('Loading data:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleAddQueue = async () => {
+                try {
+                    const newQueueNum = queueNumber + 1;
+                    const order = {
+                        queueNum: newQueueNum,
+                        items: orderCount,
+                        status: 'pending',
+                        timestamp: Date.now()
+                    };
+
+                    await window.storage.set('queue_number', newQueueNum.toString(), true);
+                    await window.storage.set(`order:${newQueueNum}`, JSON.stringify(order), true);
+
+                    setQueueNumber(newQueueNum);
+                    setOrderCount(1);
+                } catch (error) {
+                    console.error('Error adding queue:', error);
+                }
+            };
+
+            const handleCompleteOrder = async (queueNum) => {
+                try {
+                    await window.storage.delete(`order:${queueNum}`, true);
+                } catch (error) {
+                    console.error('Error completing order:', error);
+                }
+            };
+
+            const incrementOrder = () => setOrderCount(prev => prev + 1);
+            const decrementOrder = () => setOrderCount(prev => prev > 1 ? prev - 1 : 1);
+
+            const pendingOrders = orders.filter(o => o.status === 'pending');
+            const totalItems = pendingOrders.reduce((sum, order) => sum + order.items, 0);
+
+            if (loading && screenMode !== 'select') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+                        <div className="text-xl text-gray-600">Loading...</div>
+                    </div>
+                );
+            }
+
+            // Screen Selection
+            if (screenMode === 'select') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-6">
+                        <div className="max-w-2xl w-full">
+                            <div className="text-center mb-12">
+                                <h1 className="text-5xl font-bold text-white mb-4">🍗 Chicken Queue System</h1>
+                                <p className="text-xl text-orange-100">Select Your Screen Mode</p>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <button onClick={() => setScreenMode('cashier')} className="bg-white hover:bg-orange-50 rounded-3xl p-12 shadow-2xl transition-all transform hover:scale-105 group">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                            <Users />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-gray-800">Cashier</h2>
+                                        <p className="text-gray-600 text-center">Add new orders</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => setScreenMode('kitchen')} className="bg-white hover:bg-red-50 rounded-3xl p-12 shadow-2xl transition-all transform hover:scale-105 group">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                                            <ChefHat />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-gray-800">Kitchen</h2>
+                                        <p className="text-gray-600 text-center">View all orders</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Cashier Screen
+            if (screenMode === 'cashier') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+                        <div className="bg-white shadow-md border-b-4 border-orange-500">
+                            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center"><Users /></div>
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-gray-800">Cashier Screen</h1>
+                                        <p className="text-sm text-gray-600">Add new orders</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setScreenMode('select')} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition-colors">Switch</button>
+                            </div>
+                        </div>
+
+                        <div className="max-w-4xl mx-auto px-6 py-12">
+                            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl shadow-2xl p-12 mb-8 text-center">
+                                <p className="text-white text-2xl font-semibold mb-4">Current Queue Number</p>
+                                <div className="text-9xl font-bold text-white mb-4">{queueNumber}</div>
+                                <p className="text-orange-100 text-lg">Next: {queueNumber + 1}</p>
+                            </div>
+
+                            <div className="bg-white rounded-3xl shadow-xl p-8">
+                                <div className="flex items-center gap-4 mb-8">
+                                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-3xl">🍗</div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-800">Chicken Stick</h2>
+                                        <p className="text-gray-600">Select quantity</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-center gap-8 mb-8">
+                                    <button onClick={decrementOrder} className="w-20 h-20 bg-gray-200 hover:bg-gray-300 rounded-2xl flex items-center justify-center transition-colors shadow-lg"><Minus /></button>
+                                    <div className="text-7xl font-bold text-orange-600 w-32 text-center">{orderCount}</div>
+                                    <button onClick={incrementOrder} className="w-20 h-20 bg-orange-500 hover:bg-orange-600 rounded-2xl flex items-center justify-center transition-colors shadow-lg"><Plus /></button>
+                                </div>
+
+                                <button onClick={handleAddQueue} className="w-full py-6 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-2xl font-bold rounded-2xl shadow-lg transition-all transform hover:scale-105">Add to Queue</button>
+                            </div>
+
+                            {pendingOrders.length > 0 && (
+                                <div className="mt-8 bg-white rounded-3xl shadow-xl p-6">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Orders</h3>
+                                    <div className="space-y-3">
+                                        {pendingOrders.slice(-5).reverse().map((order) => (
+                                            <div key={order.queueNum} className="flex items-center justify-between p-4 bg-orange-50 rounded-xl">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center"><span className="text-white font-bold text-lg">{order.queueNum}</span></div>
+                                                    <span className="text-gray-700 font-medium">Queue #{order.queueNum}</span>
+                                                </div>
+                                                <span className="text-2xl font-bold text-orange-600">{order.items}x 🍗</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            // Kitchen Screen
+            if (screenMode === 'kitchen') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+                        <div className="bg-white shadow-md border-b-4 border-red-500">
+                            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center"><ChefHat /></div>
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-gray-800">Kitchen Screen</h1>
+                                        <p className="text-sm text-gray-600">All pending orders</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-600">Total Orders</p>
+                                        <p className="text-2xl font-bold text-red-600">{pendingOrders.length}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-600">Total Chickens</p>
+                                        <p className="text-2xl font-bold text-orange-600">{totalItems}</p>
+                                    </div>
+                                    <button onClick={() => setScreenMode('select')} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition-colors">Switch</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto px-6 py-8">
+                            {pendingOrders.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6"><ChefHat /></div>
+                                    <h2 className="text-3xl font-bold text-gray-400 mb-2">No Orders Yet</h2>
+                                    <p className="text-gray-500">Waiting for new orders...</p>
+                                </div>
+                            ) : (
+                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {pendingOrders.map((order) => (
+                                        <div key={order.queueNum} className="bg-white rounded-3xl shadow-xl p-8 border-4 border-red-500 hover:shadow-2xl transition-shadow">
+                                            <div className="text-center mb-6">
+                                                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-red-500 to-orange-500 rounded-full mb-4 shadow-lg">
+                                                    <span className="text-5xl font-bold text-white">{order.queueNum}</span>
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-gray-800">Queue #{order.queueNum}</h3>
+                                            </div>
+
+                                            <div className="bg-orange-50 rounded-2xl p-6 mb-6">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <span className="text-6xl">🍗</span>
+                                                    <div className="text-center">
+                                                        <p className="text-gray-600 text-sm">Chicken Sticks</p>
+                                                        <p className="text-5xl font-bold text-orange-600">{order.items}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button onClick={() => handleCompleteOrder(order.queueNum)} className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg">
+                                                <Check />Complete Order
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        ReactDOM.render(<QueueOrderSystem />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
