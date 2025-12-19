@@ -423,15 +423,15 @@
             if (screenMode === 'select') {
                 return (
                     <div className="min-h-screen animated-bg flex items-center justify-center p-6">
-                        <div className="max-w-2xl w-full animate-fade-in">
+                        <div className="max-w-2xl w-full">
                             <div className="text-center mb-10">
-                                <img src="logo.png" alt="Ikkyu Chicken" className="w-40 h-40 mx-auto mb-6 drop-shadow-2xl animate-bounce-in" style={{ animationDelay: '0.2s' }} />
+                                <img src="logo.png" alt="Ikkyu Chicken" className="w-40 h-40 mx-auto mb-6 drop-shadow-2xl" />
                                 <h1 className="text-4xl font-bold text-white mb-3 tracking-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>Ikkyu Chicken</h1>
                                 <p className="text-lg text-white/80 font-medium">Queue System</p>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-5">
-                                <button onClick={() => setScreenMode('cashier')} className="glass card-hover btn-press rounded-3xl p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                                <button onClick={() => setScreenMode('cashier')} className="glass card-hover btn-press rounded-3xl p-8">
                                     <div className="flex flex-col items-center gap-4">
                                         <div className="w-20 h-20 bg-ios-orange rounded-2xl flex items-center justify-center shadow-lg">
                                             <Users />
@@ -443,7 +443,7 @@
                                     </div>
                                 </button>
 
-                                <button onClick={() => setScreenMode('kitchen')} className="glass card-hover btn-press rounded-3xl p-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                                <button onClick={() => setScreenMode('kitchen')} className="glass card-hover btn-press rounded-3xl p-8">
                                     <div className="flex flex-col items-center gap-4">
                                         <div className="w-20 h-20 bg-ios-red rounded-2xl flex items-center justify-center shadow-lg">
                                             <ChefHat />
