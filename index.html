@@ -402,6 +402,12 @@
             const handleDeleteOrder = async (queueNum) => {
                 try {
                     await window.storage.delete(`order:${queueNum}`, true);
+                    // If deleting the latest order, decrement the queue number
+                    if (queueNum === queueNumber) {
+                        const newQueueNum = queueNumber - 1;
+                        await window.storage.set('queue_number', newQueueNum.toString(), true);
+                        setQueueNumber(newQueueNum);
+                    }
                 } catch (error) {
                     console.error('Error deleting order:', error);
                 }
