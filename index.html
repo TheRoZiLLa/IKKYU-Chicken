@@ -386,8 +386,29 @@
                 }
             };
 
+            const handleUpdateOrderItems = async (queueNum, change) => {
+                try {
+                    const order = orders.find(o => o.queueNum === queueNum);
+                    if (order) {
+                        const newItems = Math.max(1, order.items + change);
+                        const updatedOrder = { ...order, items: newItems };
+                        await window.storage.set(`order:${queueNum}`, JSON.stringify(updatedOrder), true);
+                    }
+                } catch (error) {
+                    console.error('Error updating order:', error);
+                }
+            };
+
+            const handleDeleteOrder = async (queueNum) => {
+                try {
+                    await window.storage.delete(`order:${queueNum}`, true);
+                } catch (error) {
+                    console.error('Error deleting order:', error);
+                }
+            };
+
             const handleResetQueue = async () => {
-                if (!window.confirm('Are you sure you want to reset the queue system? This will clear all orders and reset the queue number to 0.')) {
+                if (!window.confirm('แน่ใจที่จะรีเซ็ตคิว?')) {
                     return;
                 }
                 try {
@@ -519,9 +540,20 @@
                                             <div key={order.queueNum} className="flex items-center justify-between p-3 bg-orange-50/50 rounded-2xl order-card" style={{ animationDelay: `${index * 0.1}s` }}>
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-ios-orange rounded-xl flex items-center justify-center shadow"><span className="text-white font-bold text-sm">{order.queueNum}</span></div>
-                                                    <span className="text-gray-700 font-medium">Queue #{order.queueNum}</span>
+                                                    <span className="text-gray-700 font-medium text-sm">#{order.queueNum}</span>
                                                 </div>
-                                                <span className="text-lg font-bold text-orange-500">{order.items}x 🍗</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => handleUpdateOrderItems(order.queueNum, -1)} className="w-8 h-8 bg-gray-200 hover:bg-gray-300 btn-press rounded-lg flex items-center justify-center text-gray-600">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14" /></svg>
+                                                    </button>
+                                                    <span className="text-lg font-bold text-orange-500 w-12 text-center">{order.items}x</span>
+                                                    <button onClick={() => handleUpdateOrderItems(order.queueNum, 1)} className="w-8 h-8 bg-ios-orange btn-press rounded-lg flex items-center justify-center text-white">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDeleteOrder(order.queueNum)} className="w-8 h-8 bg-red-100 hover:bg-red-200 btn-press rounded-lg flex items-center justify-center text-red-500 ml-1">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
