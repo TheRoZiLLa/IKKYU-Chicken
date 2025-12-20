@@ -320,7 +320,71 @@
             const [orders, setOrders] = useState([]);
             const [history, setHistory] = useState([]);
             const [loading, setLoading] = useState(true);
-            const PRICE_PER_ITEM = 10; // 10 baht per chicken stick
+            const [lang, setLang] = useState('th'); // 'th' or 'en'
+            const PRICE_PER_ITEM = 10;
+
+            // Translations
+            const translations = {
+                th: {
+                    queueSystem: 'ระบบคิว',
+                    cashier: 'แคชเชียร์',
+                    kitchen: 'ครัว',
+                    accounting: 'บัญชี',
+                    addOrders: 'เพิ่มออเดอร์',
+                    viewOrders: 'ดูออเดอร์',
+                    orderHistory: 'ประวัติออเดอร์',
+                    currentQueue: 'คิวปัจจุบัน',
+                    next: 'ถัดไป',
+                    chickenStick: 'ไก่ปิ้ง',
+                    selectQuantity: 'เลือกจำนวน',
+                    addToQueue: 'เพิ่มคิว',
+                    recentOrders: 'ออเดอร์ล่าสุด',
+                    reset: 'รีเซ็ต',
+                    switch: 'สลับ',
+                    pendingOrders: 'รอดำเนินการ',
+                    orders: 'ออเดอร์',
+                    chickens: 'ไก่',
+                    done: 'เสร็จ',
+                    noOrders: 'ไม่มีออเดอร์',
+                    waitingOrders: 'รอออเดอร์ใหม่...',
+                    completedOrders: 'ออเดอร์ที่เสร็จแล้ว',
+                    noHistory: 'ยังไม่มีประวัติ',
+                    total: 'รวม',
+                    revenue: 'รายได้',
+                    confirmReset: 'แน่ใจที่จะรีเซ็ตคิวและประวัติ?',
+                    queue: 'คิว'
+                },
+                en: {
+                    queueSystem: 'Queue System',
+                    cashier: 'Cashier',
+                    kitchen: 'Kitchen',
+                    accounting: 'Accounting',
+                    addOrders: 'Add orders',
+                    viewOrders: 'View orders',
+                    orderHistory: 'Order history',
+                    currentQueue: 'Current Queue',
+                    next: 'Next',
+                    chickenStick: 'Chicken Stick',
+                    selectQuantity: 'Select quantity',
+                    addToQueue: 'Add to Queue',
+                    recentOrders: 'Recent Orders',
+                    reset: 'Reset',
+                    switch: 'Switch',
+                    pendingOrders: 'Pending orders',
+                    orders: 'Orders',
+                    chickens: 'Chickens',
+                    done: 'Done',
+                    noOrders: 'No Orders',
+                    waitingOrders: 'Waiting for orders...',
+                    completedOrders: 'Completed Orders',
+                    noHistory: 'No history yet',
+                    total: 'Total',
+                    revenue: 'Revenue',
+                    confirmReset: 'Reset queue and history?',
+                    queue: 'Queue'
+                }
+            };
+            const t = (key) => translations[lang][key] || key;
 
             useEffect(() => {
                 loadData();
@@ -443,10 +507,11 @@
             };
 
             const handleResetQueue = async () => {
-                if (!window.confirm('แน่ใจที่จะรีเซ็ตคิว?')) {
+                if (!window.confirm(t('confirmReset'))) {
                     return;
                 }
                 try {
+                    // Delete all pending orders
                     const ordersResult = await window.storage.list('order:', true);
                     if (ordersResult && ordersResult.keys) {
                         const deletePromises = ordersResult.keys.map(key =>
@@ -454,8 +519,17 @@
                         );
                         await Promise.all(deletePromises);
                     }
+                    // Delete all history
+                    const historyResult = await window.storage.list('history:', true);
+                    if (historyResult && historyResult.keys) {
+                        const deletePromises = historyResult.keys.map(key =>
+                            window.storage.delete(key, true)
+                        );
+                        await Promise.all(deletePromises);
+                    }
                     await window.storage.set('queue_number', '0', true);
                     setQueueNumber(0);
+                    setHistory([]);
                 } catch (error) {
                     console.error('Error resetting queue:', error);
                 }
@@ -479,11 +553,19 @@
             if (screenMode === 'select') {
                 return (
                     <div className="min-h-screen animated-bg flex items-center justify-center p-6">
+                        {/* Language Toggle */}
+                        <div className="fixed top-4 right-4 z-50">
+                            <div className="glass rounded-full p-1 flex gap-1 shadow-lg">
+                                <button onClick={() => setLang('th')} className={`px-3 py-1.5 rounded-full text-sm font-semibold btn-press transition-all ${lang === 'th' ? 'bg-white shadow text-gray-800' : 'text-gray-600'}`}>🇹🇭 TH</button>
+                                <button onClick={() => setLang('en')} className={`px-3 py-1.5 rounded-full text-sm font-semibold btn-press transition-all ${lang === 'en' ? 'bg-white shadow text-gray-800' : 'text-gray-600'}`}>🇺🇸 EN</button>
+                            </div>
+                        </div>
+
                         <div className="max-w-3xl w-full">
                             <div className="text-center mb-10">
                                 <img src="logo.png" alt="Ikkyu Chicken" className="w-40 h-40 mx-auto mb-6 drop-shadow-2xl" />
                                 <h1 className="text-4xl font-bold text-white mb-3 tracking-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>Ikkyu Chicken</h1>
-                                <p className="text-lg text-white/80 font-medium">Queue System</p>
+                                <p className="text-lg text-white/80 font-medium">{t('queueSystem')}</p>
                             </div>
 
                             <div className="grid md:grid-cols-3 gap-5">
@@ -493,8 +575,8 @@
                                             <Users />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-gray-800">Cashier</h2>
-                                            <p className="text-gray-500 text-xs">Add orders</p>
+                                            <h2 className="text-xl font-bold text-gray-800">{t('cashier')}</h2>
+                                            <p className="text-gray-500 text-xs">{t('addOrders')}</p>
                                         </div>
                                     </div>
                                 </button>
@@ -505,8 +587,8 @@
                                             <ChefHat />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-gray-800">Kitchen</h2>
-                                            <p className="text-gray-500 text-xs">View orders</p>
+                                            <h2 className="text-xl font-bold text-gray-800">{t('kitchen')}</h2>
+                                            <p className="text-gray-500 text-xs">{t('viewOrders')}</p>
                                         </div>
                                     </div>
                                 </button>
@@ -519,8 +601,8 @@
                                             </svg>
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-gray-800">Accounting</h2>
-                                            <p className="text-gray-500 text-xs">Order history</p>
+                                            <h2 className="text-xl font-bold text-gray-800">{t('accounting')}</h2>
+                                            <p className="text-gray-500 text-xs">{t('orderHistory')}</p>
                                         </div>
                                     </div>
                                 </button>
@@ -540,13 +622,13 @@
                                 <div className="flex items-center gap-2">
                                     <img src="logo.png" alt="Ikkyu Chicken" className="w-9 h-9 rounded-full shadow" />
                                     <div>
-                                        <h1 className="text-sm font-bold text-gray-800">Cashier</h1>
-                                        <p className="text-[10px] text-gray-500">Add orders</p>
+                                        <h1 className="text-sm font-bold text-gray-800">{t('cashier')}</h1>
+                                        <p className="text-[10px] text-gray-500">{t('addOrders')}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={handleResetQueue} className="px-3 py-1.5 bg-ios-red btn-press rounded-full text-white text-xs font-semibold shadow-lg">Reset</button>
-                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">Switch</button>
+                                    <button onClick={handleResetQueue} className="px-3 py-1.5 bg-ios-red btn-press rounded-full text-white text-xs font-semibold shadow-lg">{t('reset')}</button>
+                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">{t('switch')}</button>
                                 </div>
                             </div>
                         </div>
@@ -554,9 +636,9 @@
                         <div className="max-w-md mx-auto px-4 pt-20 pb-6 animate-fade-in">
                             {/* Queue Number Display */}
                             <div className="bg-ios-orange rounded-3xl shadow-xl p-6 mb-5 text-center animate-scale-in">
-                                <p className="text-white/80 text-sm font-semibold mb-1 uppercase tracking-wider">Current Queue</p>
+                                <p className="text-white/80 text-sm font-semibold mb-1 uppercase tracking-wider">{t('currentQueue')}</p>
                                 <div className="text-8xl font-bold text-white mb-1 number-pop" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>{queueNumber}</div>
-                                <p className="text-white/60 text-sm">Next: {queueNumber + 1}</p>
+                                <p className="text-white/60 text-sm">{t('next')}: {queueNumber + 1}</p>
                             </div>
 
                             {/* Order Controls */}
@@ -564,8 +646,8 @@
                                 <div className="flex items-center gap-3 mb-5">
                                     <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🍗</div>
                                     <div>
-                                        <h2 className="text-lg font-bold text-gray-800">Chicken Stick</h2>
-                                        <p className="text-gray-500 text-xs">Select quantity</p>
+                                        <h2 className="text-lg font-bold text-gray-800">{t('chickenStick')}</h2>
+                                        <p className="text-gray-500 text-xs">{t('selectQuantity')}</p>
                                     </div>
                                 </div>
 
@@ -576,17 +658,17 @@
                                 </div>
 
                                 <button onClick={handleAddQueue} className="w-full py-4 bg-ios-orange btn-press text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-shadow">
-                                    Add to Queue
+                                    {t('addToQueue')}
                                 </button>
                             </div>
 
                             {/* Recent Orders */}
                             {pendingOrders.length > 0 && (
-                                <div className="mt-5 glass rounded-3xl shadow-lg p-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                                    <h3 className="text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">Recent Orders</h3>
+                                <div className="mt-5 glass rounded-3xl shadow-lg p-4">
+                                    <h3 className="text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">{t('recentOrders')}</h3>
                                     <div className="space-y-2">
                                         {pendingOrders.slice(-5).reverse().map((order, index) => (
-                                            <div key={order.queueNum} className="flex items-center justify-between p-3 bg-orange-50/50 rounded-2xl order-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                                            <div key={order.queueNum} className="flex items-center justify-between p-3 bg-orange-50/50 rounded-2xl">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-ios-orange rounded-xl flex items-center justify-center shadow"><span className="text-white font-bold text-sm">{order.queueNum}</span></div>
                                                     <span className="text-gray-700 font-medium text-sm">#{order.queueNum}</span>
@@ -623,22 +705,22 @@
                                 <div className="flex items-center gap-2">
                                     <img src="logo.png" alt="Ikkyu Chicken" className="w-9 h-9 rounded-full shadow" />
                                     <div>
-                                        <h1 className="text-sm font-bold text-gray-800">Kitchen</h1>
-                                        <p className="text-[10px] text-gray-500">Pending orders</p>
+                                        <h1 className="text-sm font-bold text-gray-800">{t('kitchen')}</h1>
+                                        <p className="text-[10px] text-gray-500">{t('pendingOrders')}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">
                                         <div className="text-center px-3 py-1 bg-white/50 rounded-full">
-                                            <p className="text-[10px] text-gray-500">Orders</p>
+                                            <p className="text-[10px] text-gray-500">{t('orders')}</p>
                                             <p className="text-base font-bold text-red-500">{pendingOrders.length}</p>
                                         </div>
                                         <div className="text-center px-3 py-1 bg-white/50 rounded-full">
-                                            <p className="text-[10px] text-gray-500">Chickens</p>
+                                            <p className="text-[10px] text-gray-500">{t('chickens')}</p>
                                             <p className="text-base font-bold text-orange-500">{totalItems}</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">Switch</button>
+                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">{t('switch')}</button>
                                 </div>
                             </div>
                         </div>
@@ -647,13 +729,13 @@
                             {pendingOrders.length === 0 ? (
                                 <div className="text-center py-20 animate-scale-in">
                                     <div className="w-24 h-24 glass rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg"><ChefHat /></div>
-                                    <h2 className="text-2xl font-bold text-gray-300 mb-2">No Orders</h2>
-                                    <p className="text-gray-400">Waiting for new orders...</p>
+                                    <h2 className="text-2xl font-bold text-gray-300 mb-2">{t('noOrders')}</h2>
+                                    <p className="text-gray-400">{t('waitingOrders')}</p>
                                 </div>
                             ) : (
                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                                     {pendingOrders.map((order, index) => (
-                                        <div key={order.queueNum} className="glass card-hover rounded-3xl p-6 border-2 border-orange-200 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                                        <div key={order.queueNum} className="glass card-hover rounded-3xl p-6 border-2 border-orange-200">
                                             <div className="text-center mb-4">
                                                 <div className="inline-flex items-center justify-center w-20 h-20 bg-ios-orange rounded-2xl mb-3 shadow-xl">
                                                     <span className="text-4xl font-bold text-white">{order.queueNum}</span>
@@ -672,7 +754,7 @@
                                             </div>
 
                                             <button onClick={() => handleCompleteOrder(order.queueNum)} className="w-full py-3 bg-ios-green btn-press text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
-                                                <Check />Done
+                                                <Check />{t('done')}
                                             </button>
                                         </div>
                                     ))}
@@ -702,16 +784,16 @@
                                 <div className="flex items-center gap-2">
                                     <img src="logo.png" alt="Ikkyu Chicken" className="w-9 h-9 rounded-full shadow" />
                                     <div>
-                                        <h1 className="text-sm font-bold text-gray-800">Accounting</h1>
-                                        <p className="text-[10px] text-gray-500">Order history</p>
+                                        <h1 className="text-sm font-bold text-gray-800">{t('accounting')}</h1>
+                                        <p className="text-[10px] text-gray-500">{t('orderHistory')}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="text-center px-3 py-1 bg-white/50 rounded-full">
-                                        <p className="text-[10px] text-gray-500">Total</p>
+                                        <p className="text-[10px] text-gray-500">{t('total')}</p>
                                         <p className="text-base font-bold text-green-500">฿{totalRevenue}</p>
                                     </div>
-                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">Switch</button>
+                                    <button onClick={() => setScreenMode('select')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 btn-press rounded-full text-gray-600 text-xs font-semibold">{t('switch')}</button>
                                 </div>
                             </div>
                         </div>
@@ -720,25 +802,25 @@
                             {/* Summary Cards */}
                             <div className="grid grid-cols-3 gap-3 mb-5">
                                 <div className="glass rounded-2xl p-4 text-center">
-                                    <p className="text-xs text-gray-500 mb-1">Orders</p>
+                                    <p className="text-xs text-gray-500 mb-1">{t('orders')}</p>
                                     <p className="text-2xl font-bold text-gray-800">{history.length}</p>
                                 </div>
                                 <div className="glass rounded-2xl p-4 text-center">
-                                    <p className="text-xs text-gray-500 mb-1">Chickens</p>
+                                    <p className="text-xs text-gray-500 mb-1">{t('chickens')}</p>
                                     <p className="text-2xl font-bold text-orange-500">{totalChickens}</p>
                                 </div>
                                 <div className="glass rounded-2xl p-4 text-center">
-                                    <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                                    <p className="text-xs text-gray-500 mb-1">{t('revenue')}</p>
                                     <p className="text-2xl font-bold text-green-500">฿{totalRevenue}</p>
                                 </div>
                             </div>
 
                             {/* History List */}
                             <div className="glass rounded-3xl shadow-lg p-4">
-                                <h3 className="text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">Completed Orders</h3>
+                                <h3 className="text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">{t('completedOrders')}</h3>
                                 {history.length === 0 ? (
                                     <div className="text-center py-10">
-                                        <p className="text-gray-400">No completed orders yet</p>
+                                        <p className="text-gray-400">{t('noHistory')}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2 max-h-96 overflow-y-auto">
