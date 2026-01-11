@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IKKYU Chicken - Pre Order</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin
+        src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .animate-scale-in {
+            animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-bounce-in {
+            animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            70% {
+                transform: scale(0.9);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .btn-press {
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .btn-press:active {
+            transform: scale(0.95);
+        }
+
+        .number-pop {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .bg-purple-gradient {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 50%, #4F46E5 100%);
+        }
+    </style>
+
+    <!-- Firebase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+
+    <script>
+        // Firebase Configuration - Same as main system
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXs9uvoI1R0FpjMpMsMjvj-ZAoJYsZOFA",
+            authDomain: "queuesystem-14823.firebaseapp.com",
+            databaseURL: "https://queuesystem-14823-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "queuesystem-14823",
+            storageBucket: "queuesystem-14823.firebasestorage.app",
+            messagingSenderId: "973985004748",
+            appId: "1:973985004748:web:8590102e64eb1fefed5669",
+            measurementId: "G-9H3VX759RE"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+
+        window.storage = {
+            async set(key, value, shared = false) {
+                try {
+                    await database.ref(key).set(value);
+                    return { key, value, shared };
+                } catch (error) {
+                    console.error('Set error:', error);
+                    return null;
+                }
+            }
+        };
+    </script>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function PreOrderPage() {
+            const [name, setName] = useState('');
+            const [count, setCount] = useState(1);
+            const [lang, setLang] = useState('th');
+            const [submitted, setSubmitted] = useState(false);
+            const [submitting, setSubmitting] = useState(false);
+
+            const PRICE_PER_ITEM = 10;
+
+            const calculatePromotion = (items) => {
+                let discount = 0;
+                if (items === 6) {
+                    discount = 5;
+                }
+                const normalPrice = items * PRICE_PER_ITEM;
+                return {
+                    discount: discount,
+                    price: normalPrice - discount
+                };
+            };
+
+            const translations = {
+                th: {
+                    title: 'พรีออเดอร์',
+                    subtitle: 'ไก่ปิ้ง IKKYU',
+                    enterName: 'กรอกชื่อ',
+                    selectQuantity: 'เลือกจำนวนไม้',
+                    chickenStick: 'ไก่ปิ้ง',
+                    confirmOrder: 'ยืนยันพรีออเดอร์',
+                    discount: 'ส่วนลด',
+                    promotion: '6 ไม้ 55 บาท',
+                    thankYou: 'ขอบคุณครับ!',
+                    orderReceived: 'ออเดอร์ของคุณถูกบันทึกแล้ว',
+                    orderAgain: 'สั่งอีกครั้ง',
+                    pleaseEnterName: 'กรุณากรอกชื่อ'
+                },
+                en: {
+                    title: 'Pre-order',
+                    subtitle: 'IKKYU Chicken',
+                    enterName: 'Enter name',
+                    selectQuantity: 'Select sticks',
+                    chickenStick: 'Chicken Stick',
+                    confirmOrder: 'Confirm Pre-order',
+                    discount: 'Discount',
+                    promotion: '6 sticks 55฿',
+                    thankYou: 'Thank You!',
+                    orderReceived: 'Your order has been received',
+                    orderAgain: 'Order Again',
+                    pleaseEnterName: 'Please enter your name'
+                }
+            };
+
+            const t = (key) => translations[lang][key] || key;
+
+            const handleSubmit = async () => {
+                if (!name.trim()) {
+                    alert(t('pleaseEnterName'));
+                    return;
+                }
+
+                setSubmitting(true);
+                try {
+                    const timestamp = Date.now();
+                    const preOrder = {
+                        id: timestamp,
+                        name: name.trim(),
+                        items: count,
+                        status: 'pending',
+                        timestamp: timestamp
+                    };
+                    await window.storage.set(`preorder:${timestamp}`, JSON.stringify(preOrder), true);
+                    setSubmitted(true);
+                } catch (error) {
+                    console.error('Error submitting pre-order:', error);
+                    alert('Error submitting order. Please try again.');
+                } finally {
+                    setSubmitting(false);
+                }
+            };
+
+            const handleOrderAgain = () => {
+                setName('');
+                setCount(1);
+                setSubmitted(false);
+            };
+
+            const increment = () => setCount(prev => prev + 1);
+            const decrement = () => setCount(prev => prev > 1 ? prev - 1 : 1);
+
+            // Success Screen
+            if (submitted) {
+                return (
+                    <div className="min-h-screen bg-purple-gradient flex items-center justify-center p-6">
+                        <div className="max-w-md w-full animate-fade-in">
+                            <div className="glass rounded-3xl shadow-2xl p-8 text-center animate-bounce-in">
+                                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                </div>
+                                <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('thankYou')}</h1>
+                                <p className="text-gray-500 mb-8">{t('orderReceived')}</p>
+                                <button
+                                    onClick={handleOrderAgain}
+                                    className="w-full py-4 btn-press text-white text-lg font-bold rounded-2xl shadow-xl"
+                                    style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}
+                                >
+                                    {t('orderAgain')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-purple-gradient flex items-center justify-center p-6">
+                    {/* Language Toggle */}
+                    <div className="fixed top-4 right-4 z-50">
+                        <div className="glass rounded-full p-1 flex gap-1 shadow-lg">
+                            <button onClick={() => setLang('th')} className={`px-3 py-1.5 rounded-full text-sm font-semibold btn-press transition-all ${lang === 'th' ? 'bg-white shadow text-gray-800' : 'text-gray-600'}`}>🇹🇭 TH</button>
+                            <button onClick={() => setLang('en')} className={`px-3 py-1.5 rounded-full text-sm font-semibold btn-press transition-all ${lang === 'en' ? 'bg-white shadow text-gray-800' : 'text-gray-600'}`}>🇺🇸 EN</button>
+                        </div>
+                    </div>
+
+                    <div className="max-w-md w-full animate-fade-in">
+                        {/* Header */}
+                        <div className="text-center mb-6">
+                            <img src="logo.png" alt="IKKYU Chicken" className="w-24 h-24 mx-auto mb-4 drop-shadow-2xl" />
+                            <h1 className="text-3xl font-bold text-white mb-1" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>{t('subtitle')}</h1>
+                            <p className="text-white/80 text-lg font-medium">{t('title')}</p>
+                        </div>
+
+                        {/* Order Card */}
+                        <div className="glass rounded-3xl shadow-2xl p-8 animate-scale-in">
+                            {/* Chicken Image */}
+                            <div className="flex justify-center mb-6">
+                                <div className="w-32 h-32 bg-purple-50 rounded-3xl flex items-center justify-center shadow-inner">
+                                    <img src="chicken.png" alt="Chicken" className="w-24 h-24 object-contain drop-shadow-lg" />
+                                </div>
+                            </div>
+
+                            {/* Name Input */}
+                            <div className="mb-6">
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder={t('enterName')}
+                                    className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-gray-800 text-center text-lg font-medium focus:border-purple-400 focus:outline-none transition-colors"
+                                />
+                            </div>
+
+                            {/* Quantity Label */}
+                            <p className="text-center text-gray-500 text-sm mb-3">{t('selectQuantity')}</p>
+
+                            {/* Quantity Selector */}
+                            <div className="flex items-center justify-center gap-6 mb-6">
+                                <button onClick={decrement} className="w-16 h-16 bg-gray-100 hover:bg-gray-200 btn-press rounded-2xl flex items-center justify-center shadow-inner">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M5 12h14" />
+                                    </svg>
+                                </button>
+                                <div className="text-6xl font-bold text-purple-600 w-24 text-center number-pop">{count}</div>
+                                <button onClick={increment} className="w-16 h-16 btn-press rounded-2xl flex items-center justify-center shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M5 12h14" /><path d="M12 5v14" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Price Display */}
+                            <div className="text-center mb-6">
+                                <p className="text-gray-500 text-sm">{t('chickenStick')}</p>
+                                <p className="text-3xl font-bold text-gray-800">฿{calculatePromotion(count).price}</p>
+                                {calculatePromotion(count).discount > 0 && (
+                                    <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 bg-green-100 rounded-full">
+                                        <span className="text-green-600 font-semibold text-sm">-฿{calculatePromotion(count).discount} {t('discount')}</span>
+                                    </div>
+                                )}
+                                <p className="text-purple-500 text-xs mt-2 font-medium">{t('promotion')}</p>
+                            </div>
+
+                            {/* Confirm Button */}
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting}
+                                className="w-full py-4 btn-press text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-shadow disabled:opacity-50"
+                                style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}
+                            >
+                                {submitting ? '...' : t('confirmOrder')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<PreOrderPage />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
