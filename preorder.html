@@ -92,8 +92,8 @@
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .bg-purple-gradient {
-            background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 50%, #4F46E5 100%);
+        .bg-orange-gradient {
+            background: linear-gradient(135deg, #F97316 0%, #FACC15 100%);
         }
     </style>
 
@@ -145,6 +145,7 @@
             const [lang, setLang] = useState('th');
             const [submitted, setSubmitted] = useState(false);
             const [submitting, setSubmitting] = useState(false);
+            const [showWarning, setShowWarning] = useState(false);
 
             const PRICE_PER_ITEM = 10;
 
@@ -195,9 +196,10 @@
 
             const handleSubmit = async () => {
                 if (!name.trim()) {
-                    alert(t('pleaseEnterName'));
+                    setShowWarning(true);
                     return;
                 }
+                setShowWarning(false);
 
                 setSubmitting(true);
                 try {
@@ -223,6 +225,7 @@
                 setName('');
                 setCount(1);
                 setSubmitted(false);
+                setShowWarning(false);
             };
 
             const increment = () => setCount(prev => prev + 1);
@@ -231,7 +234,7 @@
             // Success Screen
             if (submitted) {
                 return (
-                    <div className="min-h-screen bg-purple-gradient flex items-center justify-center p-6">
+                    <div className="min-h-screen bg-orange-gradient flex items-center justify-center p-6">
                         <div className="max-w-md w-full animate-fade-in">
                             <div className="glass rounded-3xl shadow-2xl p-8 text-center animate-bounce-in">
                                 <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -244,7 +247,7 @@
                                 <button
                                     onClick={handleOrderAgain}
                                     className="w-full py-4 btn-press text-white text-lg font-bold rounded-2xl shadow-xl"
-                                    style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}
+                                    style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)' }}
                                 >
                                     {t('orderAgain')}
                                 </button>
@@ -255,7 +258,7 @@
             }
 
             return (
-                <div className="min-h-screen bg-purple-gradient flex items-center justify-center p-6">
+                <div className="min-h-screen bg-orange-gradient flex items-center justify-center p-6">
                     {/* Language Toggle */}
                     <div className="fixed top-4 right-4 z-50">
                         <div className="glass rounded-full p-1 flex gap-1 shadow-lg">
@@ -276,7 +279,7 @@
                         <div className="glass rounded-3xl shadow-2xl p-8 animate-scale-in">
                             {/* Chicken Image */}
                             <div className="flex justify-center mb-6">
-                                <div className="w-32 h-32 bg-purple-50 rounded-3xl flex items-center justify-center shadow-inner">
+                                <div className="w-32 h-32 bg-orange-50 rounded-3xl flex items-center justify-center shadow-inner">
                                     <img src="chicken.png" alt="Chicken" className="w-24 h-24 object-contain drop-shadow-lg" />
                                 </div>
                             </div>
@@ -286,10 +289,13 @@
                                 <input
                                     type="text"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(e) => { setName(e.target.value); setShowWarning(false); }}
                                     placeholder={t('enterName')}
-                                    className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-gray-800 text-center text-lg font-medium focus:border-purple-400 focus:outline-none transition-colors"
+                                    className={`w-full px-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 text-center text-lg font-medium focus:border-orange-400 focus:outline-none transition-colors ${showWarning ? 'border-red-400' : 'border-gray-200'}`}
                                 />
+                                {showWarning && (
+                                    <p className="text-red-500 text-sm text-center mt-2 font-medium">{t('pleaseEnterName')}</p>
+                                )}
                             </div>
 
                             {/* Quantity Label */}
@@ -302,8 +308,8 @@
                                         <path d="M5 12h14" />
                                     </svg>
                                 </button>
-                                <div className="text-6xl font-bold text-purple-600 w-24 text-center number-pop">{count}</div>
-                                <button onClick={increment} className="w-16 h-16 btn-press rounded-2xl flex items-center justify-center shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}>
+                                <div className="text-6xl font-bold text-orange-500 w-24 text-center number-pop">{count}</div>
+                                <button onClick={increment} className="w-16 h-16 btn-press rounded-2xl flex items-center justify-center shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)' }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M5 12h14" /><path d="M12 5v14" />
                                     </svg>
@@ -319,7 +325,7 @@
                                         <span className="text-green-600 font-semibold text-sm">-฿{calculatePromotion(count).discount} {t('discount')}</span>
                                     </div>
                                 )}
-                                <p className="text-purple-500 text-xs mt-2 font-medium">{t('promotion')}</p>
+                                <p className="text-orange-500 text-xs mt-2 font-medium">{t('promotion')}</p>
                             </div>
 
                             {/* Confirm Button */}
@@ -327,7 +333,7 @@
                                 onClick={handleSubmit}
                                 disabled={submitting}
                                 className="w-full py-4 btn-press text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-shadow disabled:opacity-50"
-                                style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)' }}
+                                style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)' }}
                             >
                                 {submitting ? '...' : t('confirmOrder')}
                             </button>
