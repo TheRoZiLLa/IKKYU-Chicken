@@ -143,6 +143,7 @@
             const [name, setName] = useState('');
             const [count, setCount] = useState(1);
             const [lang, setLang] = useState('th');
+            const [role, setRole] = useState('student'); // 'student' or 'teacher'
             const [submitted, setSubmitted] = useState(false);
             const [submitting, setSubmitting] = useState(false);
             const [showWarning, setShowWarning] = useState(false);
@@ -190,7 +191,11 @@
                     pleaseEnterName: 'กรุณากรอกชื่อ',
                     pleaseEnterGrade: 'กรุณาใส่ระดับชั้นและห้อง',
                     pleaseEnterRoom: 'กรุณาใส่ห้องด้วย',
-                    exampleName: 'ตัวอย่าง: สมชาย ม.3/1 หรือ สมหญิง ป.5/2'
+                    exampleName: 'ตัวอย่าง: สมชาย ม.3/1 หรือ สมหญิง ป.5/2',
+                    exampleTeacher: 'ตัวอย่าง: ครูสมชาย หรือ อาจารย์สมหญิง',
+                    student: 'นักเรียน',
+                    teacher: 'คุณครู',
+                    selectRole: 'เลือกประเภท'
                 },
                 en: {
                     title: 'Pre-order',
@@ -207,7 +212,11 @@
                     pleaseEnterName: 'Please enter your name',
                     pleaseEnterGrade: 'Please enter grade level and class',
                     pleaseEnterRoom: 'Please enter room number',
-                    exampleName: 'Example: Somchai M.3/1 or Somying P.5/2'
+                    exampleName: 'Example: Somchai M.3/1 or Somying P.5/2',
+                    exampleTeacher: 'Example: Teacher Somchai',
+                    student: 'Student',
+                    teacher: 'Teacher',
+                    selectRole: 'Select type'
                 }
             };
 
@@ -219,15 +228,18 @@
                     setShowWarning(true);
                     return;
                 }
-                if (!hasGradeLevel(name.trim())) {
-                    setWarningMessage('pleaseEnterGrade');
-                    setShowWarning(true);
-                    return;
-                }
-                if (!hasRoom(name.trim())) {
-                    setWarningMessage('pleaseEnterRoom');
-                    setShowWarning(true);
-                    return;
+                // Only validate grade and room for students
+                if (role === 'student') {
+                    if (!hasGradeLevel(name.trim())) {
+                        setWarningMessage('pleaseEnterGrade');
+                        setShowWarning(true);
+                        return;
+                    }
+                    if (!hasRoom(name.trim())) {
+                        setWarningMessage('pleaseEnterRoom');
+                        setShowWarning(true);
+                        return;
+                    }
                 }
                 setShowWarning(false);
 
@@ -237,6 +249,7 @@
                     const preOrder = {
                         id: timestamp,
                         name: name.trim(),
+                        role: role,
                         items: count,
                         status: 'pending',
                         timestamp: timestamp
@@ -254,6 +267,7 @@
             const handleOrderAgain = () => {
                 setName('');
                 setCount(1);
+                setRole('student');
                 setSubmitted(false);
                 setShowWarning(false);
             };
@@ -307,12 +321,31 @@
 
                         {/* Order Card */}
                         <div className="glass rounded-3xl shadow-2xl p-8 animate-scale-in">
+                            {/* Role Selector */}
+                            <div className="mb-6">
+                                <p className="text-center text-gray-500 text-sm mb-3">{t('selectRole')}</p>
+                                <div className="flex gap-3 justify-center">
+                                    <button
+                                        onClick={() => { setRole('student'); setShowWarning(false); }}
+                                        className={`flex-1 py-3 px-4 rounded-2xl font-semibold btn-press transition-all ${role === 'student' ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                    >
+                                        📚 {t('student')}
+                                    </button>
+                                    <button
+                                        onClick={() => { setRole('teacher'); setShowWarning(false); }}
+                                        className={`flex-1 py-3 px-4 rounded-2xl font-semibold btn-press transition-all ${role === 'teacher' ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                    >
+                                        👨‍🏫 {t('teacher')}
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Chicken Image */}
                             <div className="flex flex-col items-center mb-6">
                                 <div className="w-32 h-32 bg-orange-50 rounded-3xl flex items-center justify-center shadow-inner">
                                     <img src="chicken.png" alt="Chicken" className="w-24 h-24 object-contain drop-shadow-lg" />
                                 </div>
-                                <p className="text-gray-400 text-xs mt-2 text-center">{t('exampleName')}</p>
+                                <p className="text-gray-400 text-xs mt-2 text-center">{role === 'student' ? t('exampleName') : t('exampleTeacher')}</p>
                             </div>
 
                             {/* Name Input */}
